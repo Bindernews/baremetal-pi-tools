@@ -1,0 +1,7 @@
+
+# Ignore compiled files.
+bin/
+build/
+
+# Ignore custom makefiles
+*.mk

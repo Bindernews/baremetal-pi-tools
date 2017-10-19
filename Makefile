@@ -1,0 +1,299 @@
+###############################################################################
+# Build script for Raspberry PI C code.
+# 
+###############################################################################
+
+####################
+### Instructions ###
+####################
+#
+# Replace PREFIX with the path to your yagarto or linaro install
+# Replace ARMGNU with the root name of the compiler binaries
+#   For yagarto it's usually $(PREFIX)/bin/arm-none-eabi
+#   For linaro it's usually $(PREFIX)/bin/arm-eabi
+# Replace SUFFIX with .exe if you're on Windows or just leave it blank for other OSs.
+#
+# Your SOURCE files go in a directory named "source".
+# This includes *.c, *.h, *.s files.
+# Your files will be compiled in build/ and your kernel will be output into bin/
+# 
+# Example Directory Structure:
+#
+# lab_x
+# | Makefile
+# | kernel_c.ld
+# | include/
+#    | gpio.h
+# | source/
+#    | main.c
+#    | gpio.c
+#    | boot.s
+# | build/       <- generated for you
+#    | ...
+# | bin/         <- generated for you
+#    | kernel7.img
+#    | kernel7.list
+#    | kernel7.map
+#
+#
+# IF YOU ARE CONFUSED OR HAVING TROUBLE:
+# Use genmake.py
+#
+
+
+##############
+# Change Log #
+##############
+# 2017-10-17:
+#   - Add rule for making ihex file
+#   - Add comment about linking to libc
+# 2017-09-13:
+#   - Cross-platform compatibility fixes
+#
+
+###
+# build environment
+###
+
+# Replace with the path to your yagarto install directory.
+# Note: Any paths with spaces in it must have quotes around them, like below:
+PREFIX ?= "/cygdrive/C/yagarto-20121222"
+
+ARMGNU ?= $(PREFIX)/bin/arm-none-eabi
+#ARMGNU ?= $(PREFIX)/bin/arm-eabi
+
+# Suffix on windows is .exe, other platforms it's nothing
+SUFFIX ?= .exe
+#SUFFIX ?= 
+
+###########################
+# DON'T CHANGE THIS STUFF #
+###########################
+
+# Uncomment to create a C assembler listing
+CASM_LIST = -Wa,-adhln	> $(BUILD)$*.lst
+
+# The intermediate directory for compiled object files.
+BUILD = build/
+
+OUTPUT = bin/
+
+# The directory in which source files are stored.
+SOURCE = source/
+
+###
+# Targets
+###
+
+# The name of the output file to generate.
+TARGET = $(OUTPUT)kernel7.img
+
+# The hexfile version of TARGET
+TARGET_HEX = $(OUTPUT)kernel7.hex
+
+# The name of the assembler listing file to generate.
+LIST = $(OUTPUT)kernel7.list
+
+# The name of the map file to generate.
+MAP = $(OUTPUT)kernel7.map
+
+###
+# Sources
+###
+
+# The name of the linker script to use.
+LINKER = kernel_c.ld
+
+# The names of all object files that must be generated. Deduced from the 
+# assembly code files in source.
+OBJECTS := $(patsubst $(SOURCE)%.s,$(BUILD)%.o,$(wildcard $(SOURCE)*.s))
+OBJECTS += $(patsubst $(SOURCE)%.c,$(BUILD)%.o,$(wildcard $(SOURCE)*.c))
+OBJECTS += $(patsubst $(SOURCE)%.cpp,$(BUILD)%.o,$(wildcard $(SOURCE)*.cpp))
+
+###
+# OS-specific stuff, because Windows is dumb
+###
+
+# If tehy tell us we're using Unix, assume they're telling the truth, otherwise
+# check if we need to cry and use powershell.
+ifeq ($(UNIX),true)
+	MKDIR_CMD ?= mkdir -p "$(1)"
+	RM_CMD ?= rm -f "$(1)"
+endif
+ifeq ($(OS),Windows_NT)
+	MKDIR_CMD ?= powershell -Command "mkdir -Force $(1) 2>&1 | Out-Null"
+	#RM_CMD ?= powershell -Command "rm $(1) 2>&1 | Out-Null"
+	RM_CMD ?= cmd /C 'DEL /F /Q "$(1)"'
+else
+	MKDIR_CMD ?= mkdir -p "$(1)"
+	RM_CMD ?= rm -f $(1)
+endif
+
+###
+# Build flags
+###
+
+DEPENDFLAGS := -MD -MP
+INCLUDES    := -I include
+
+BASEFLAGS   := -pedantic -pedantic-errors -nostdlib
+BASEFLAGS   += -nostartfiles -ffreestanding -nodefaultlibs
+
+# Pi 1 compile flags
+#BASEFLAGS   += -O2 -mfpu=vfp -mfloat-abi=hard -march=armv6zk -mtune=arm1176jzf-s
+
+# A+ compile flags
+# BASEFLAGS   += -O2 -mfpu=vfp -mfloat-abi=hard -march=armv6zk -mtune=arm1176jzf-s -DPI2
+
+# Pi 2 compile flags
+#BASEFLAGS += -O2 -mfpu=neon-vfpv4 -mfloat-abi=hard -march=armv7-a -mtune=cortex-a7  -DPI2
+
+# Pi 3 compile flags
+BASEFLAGS   += -O2 -mfpu=neon-vfpv4 -march=armv8-a -mtune=cortex-a53 -DPI2 -mfloat-abi=hard
+
+### Warnings ###
+
+# -Wall turns on the following flags ( from https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html ):
+# -Waddress   
+# -Warray-bounds=1 (only with -O2)  
+# -Wbool-compare  
+# -Wc++11-compat  -Wc++14-compat
+# -Wchar-subscripts  
+# -Wcomment  
+# -Wduplicate-decl-specifier (C and Objective-C only) 
+# -Wenum-compare (in C/ObjC; this is on by default in C++) 
+# -Wformat   
+# -Wimplicit (C and Objective-C only) 
+# -Wimplicit-int (C and Objective-C only) 
+# -Wimplicit-function-declaration (C and Objective-C only) 
+# -Winit-self (only for C++) 
+# -Wlogical-not-parentheses
+# -Wmain (only for C/ObjC and unless -ffreestanding)  
+# -Wmaybe-uninitialized 
+# -Wmemset-elt-size 
+# -Wmemset-transposed-args 
+# -Wmisleading-indentation (only for C/C++) 
+# -Wmissing-braces (only for C/ObjC) 
+# -Wnarrowing (only for C++)  
+# -Wnonnull  
+# -Wnonnull-compare  
+# -Wopenmp-simd 
+# -Wparentheses  
+# -Wpointer-sign  
+# -Wreorder   
+# -Wreturn-type  
+# -Wsequence-point  
+# -Wsign-compare (only in C++)  
+# -Wsizeof-pointer-memaccess 
+# -Wstrict-aliasing  
+# -Wstrict-overflow=1  
+# -Wswitch  
+# -Wtautological-compare  
+# -Wtrigraphs  
+# -Wuninitialized  
+# -Wunknown-pragmas  
+# -Wunused-function  
+# -Wunused-label     
+# -Wunused-value     
+# -Wunused-variable  
+# -Wvolatile-register-var
+
+# -Wextra turns on the following errors:
+# -Wclobbered  
+# -Wempty-body  
+# -Wignored-qualifiers 
+# -Wmissing-field-initializers  
+# -Wmissing-parameter-type (C only)  
+# -Wold-style-declaration (C only)  
+# -Woverride-init  
+# -Wsign-compare (C only) 
+# -Wtype-limits  
+# -Wuninitialized  
+# -Wshift-negative-value (in C++03 and in C99 and newer)  
+# -Wunused-parameter (only with -Wunused or -Wall).  Removed below with -Wno-unused-parameter
+# -Wunused-but-set-parameter (only with -Wunused or -Wall).  Removed below with -Wno-unused-but-set-parameter
+
+WARNFLAGS   := -Wall -Wextra -Wshadow -Wcast-align -Wwrite-strings
+WARNFLAGS   += -Wredundant-decls -Winline
+WARNFLAGS   += -Wno-attributes -Wno-deprecated-declarations
+WARNFLAGS   += -Wno-div-by-zero -Wno-endif-labels -Wfloat-equal
+WARNFLAGS   += -Wformat=2 -Wno-format-extra-args -Winit-self
+WARNFLAGS   += -Winvalid-pch -Wmissing-format-attribute
+WARNFLAGS   += -Wmissing-include-dirs -Wno-multichar
+WARNFLAGS   += -Wredundant-decls -Wshadow
+WARNFLAGS   += -Wno-sign-compare -Wsystem-headers -Wundef
+WARNFLAGS   += -Wno-pragmas -Wno-unused-but-set-parameter
+WARNFLAGS   += -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-parameter
+WARNFLAGS   += -Wwrite-strings -Wdisabled-optimization -Wpointer-arith
+WARNFLAGS   += -Wno-unused-function -Wno-unused-variable
+
+#Warnings are errors.
+WARNFLAGS   += -Werror
+
+### Assembly Flags ###
+
+ASFLAGS     := $(INCLUDES) $(DEPENDFLAGS) -D__ASSEMBLY__
+
+### C Flags ###
+CFLAGS      := $(INCLUDES) $(DEPENDFLAGS) $(BASEFLAGS) $(WARNFLAGS)
+CFLAGS      += -std=c11
+
+### C++ Flags ###
+CXXFLAGS    := $(INCLUDES) $(DEPENDFLAGS) $(BASEFLAGS) $(WARNFLAGS)
+CXXFLAGS    += -std=c++14
+
+###
+# Rules
+###
+
+# Rule to make everything.
+all: $(TARGET) $(TARGET_HEX) $(LIST)
+
+# Rule to remake everything. Does not include clean.
+rebuild: all
+
+# Rule to make the listing file.
+$(LIST) : $(BUILD)output.elf | $(OUTPUT)
+	$(ARMGNU)-objdump$(SUFFIX) -d $(BUILD)output.elf > $(LIST)
+
+# Rule to make the image file.
+$(TARGET) : $(BUILD)output.elf | $(OUTPUT)
+	$(ARMGNU)-objcopy$(SUFFIX) $(BUILD)output.elf -O binary $(TARGET) 
+
+# Rule to make the hex file
+$(TARGET_HEX) : $(BUILD)output.elf | $(OUTPUT)
+	$(ARMGNU)-objcopy$(SUFFIX) $(BUILD)output.elf -O ihex $(TARGET_HEX)
+
+# Rule to make the elf file.
+$(BUILD)output.elf : $(OBJECTS) $(LINKER) | $(BUILD) $(OUTPUT)
+	$(ARMGNU)-ld$(SUFFIX) --no-undefined $(OBJECTS) -Map $(MAP) -o $(BUILD)output.elf -T $(LINKER)
+# To link with libc add "$(PREFIX)/lib/gcc/*/*/v7-a/libgcc.a" after $(OBJECTS)
+
+# Rule to make the assembler object files.
+$(BUILD)%.o: $(SOURCE)%.s | $(BUILD)
+	$(ARMGNU)-as$(SUFFIX) -I $(SOURCE) $< -o $@
+
+# C.
+$(BUILD)%.o: $(SOURCE)%.c | $(BUILD)
+	$(ARMGNU)-gcc$(SUFFIX) $(CFLAGS) -c $< -o $@  $(CASM_LIST)
+
+# CPP.
+$(BUILD)%.o: $(SOURCE)%.cpp | $(BUILD)
+	$(ARMGNU)-g++$(SUFFIX) $(CXXFLAGS) -c $< -o $@  $(CASM_LIST)
+
+$(BUILD):
+	$(call MKDIR_CMD,$(BUILD))
+
+$(OUTPUT):
+	$(call MKDIR_CMD,$(OUTPUT))
+    
+# Rule to clean files.
+clean : 
+	-$(call RM_CMD,$(BUILD)*.o)
+	-$(call RM_CMD,$(BUILD)*.d)
+	-$(call RM_CMD,$(BUILD)*.lst)
+	-$(call RM_CMD,$(BUILD)output.elf)
+	-$(call RM_CMD,$(TARGET))
+	-$(call RM_CMD,$(TARGET_HEX))
+	-$(call RM_CMD,$(LIST))
+	-$(call RM_CMD,$(MAP))
