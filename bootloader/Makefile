@@ -37,8 +37,16 @@
 #
 #
 # IF YOU ARE CONFUSED OR HAVING TROUBLE:
-# I wrote a Python 3 script which will detect the correct settings for your compiler.
-# Download the script at https://pastebin.com/XAXwFDtx and READ THE INSTRUCTIONS!!!!!!
+# Use genmake.py
+#
+
+###
+# build environment
+###
+PREFIX ?= "/cygdrive/C/yagarto-20121222"
+ARMGNU ?= "$(PREFIX)/bin/arm-none-eabi"
+SUFFIX ?= .exe
+UNIX ?= true
 
 
 ##############
@@ -50,21 +58,6 @@
 # 2017-09-13:
 #   - Cross-platform compatibility fixes
 #
-
-###
-# build environment
-###
-
-# Replace with the path to your yagarto install directory.
-# Note: Any paths with spaces in it must have quotes around them, like below:
-PREFIX ?= "/cygdrive/C/yagarto-20121222"
-
-ARMGNU ?= $(PREFIX)/bin/arm-none-eabi
-#ARMGNU ?= $(PREFIX)/bin/arm-eabi
-
-# Suffix on windows is .exe, other platforms it's nothing
-SUFFIX ?= .exe
-#SUFFIX ?= 
 
 ###########################
 # DON'T CHANGE THIS STUFF #
