@@ -40,17 +40,6 @@
 # Use genmake.py
 #
 
-
-##############
-# Change Log #
-##############
-# 2017-10-17:
-#   - Add rule for making ihex file
-#   - Add comment about linking to libc
-# 2017-09-13:
-#   - Cross-platform compatibility fixes
-#
-
 ###
 # build environment
 ###
@@ -65,6 +54,16 @@ ARMGNU ?= $(PREFIX)/bin/arm-none-eabi
 # Suffix on windows is .exe, other platforms it's nothing
 SUFFIX ?= .exe
 #SUFFIX ?= 
+
+##############
+# Change Log #
+##############
+# 2017-10-17:
+#   - Add rule for making ihex file
+#   - Add comment about linking to libc
+# 2017-09-13:
+#   - Cross-platform compatibility fixes
+#
 
 ###########################
 # DON'T CHANGE THIS STUFF #
@@ -122,8 +121,7 @@ ifeq ($(UNIX),true)
 endif
 ifeq ($(OS),Windows_NT)
 	MKDIR_CMD ?= powershell -Command "mkdir -Force $(1) 2>&1 | Out-Null"
-	#RM_CMD ?= powershell -Command "rm $(1) 2>&1 | Out-Null"
-	RM_CMD ?= cmd /C 'DEL /F /Q "$(1)"'
+	RM_CMD ?= powershell -Command "rm $(1) 2>&1 | Out-Null"
 else
 	MKDIR_CMD ?= mkdir -p "$(1)"
 	RM_CMD ?= rm -f $(1)

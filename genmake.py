@@ -52,7 +52,7 @@ class MakefileGen:
     def _determine_settings(self):
         # Do path parsing to get necessary information
         bin_dir, gcc_file = os.path.split(self.gcc_path)
-        compiler_dir = bin_dir[:bin_dir.rfind(os.sep)]
+        self.compiler_dir = bin_dir[:bin_dir.rfind(os.sep)]
         self.arm_gnu = gcc_file[:gcc_file.rfind('eabi') + 4]
         self.has_exe = gcc_file.find('.exe') != -1
         self.is_cygwin = os.path.exists('/cygdrive/')
@@ -60,21 +60,21 @@ class MakefileGen:
 
         # Determine the name of the compiler
         if not self.name:
-            nameIdx1 = compiler_dir.rfind(os.sep) + 1
-            self.name = compiler_dir[nameIdx1:]
+            nameIdx1 = self.compiler_dir.rfind(os.sep) + 1
+            self.name = self.compiler_dir[nameIdx1:]
 
     def _get_url_as_string(self, url):
         """ Download a URL and return it as a string. """
         with urllib.request.urlopen(url, cadefault=True) as response:
-            return response.read()
+            return str(response.read(), 'utf-8')
 
     def _make_settings_string(self):
         s = ''
-        s += 'PREFIX ?= "' + compiler_dir + '"' + LN
-        s += 'ARMGNU ?= "$(PREFIX)/bin/' + arm_gnu + '"' + LN
+        s += 'PREFIX ?= "' + self.compiler_dir + '"' + LN
+        s += 'ARMGNU ?= "$(PREFIX)/bin/' + self.arm_gnu + '"' + LN
         s += 'SUFFIX ?= ' + ('.exe' if self.has_exe else '') + LN
         s += 'CYGWIN ?= ' + ('true' if self.is_cygwin else 'false') + LN
-        s += 'UNIX ?= ' ('true' if self.is_unix else 'false') + LN
+        s += 'UNIX ?= ' + ('true' if self.is_unix else 'false') + LN
         return s
     
     def generate_full(self, out):
