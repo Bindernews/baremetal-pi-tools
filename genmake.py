@@ -7,18 +7,16 @@
 #    If you're having trouble try "~". That will search your home directory.
 #    Remember that to use the C:\ drive in Cygwin it's "/cygdrive/c/" and in Bash on Windows it's "/mnt/c".
 #    If all else fails you can just use "/" or "C:/" but that will take a while.
-# 5. genmake will download a Makefile which does all the work and name it "Makefile". Follow the instructions
-#    in that file. Seriously, do it. Specifically the part about which directories to put the different files in.
-# 6. Once you see: 'Success! Wrote to <somefile>' you can compile your code by running:
-#    `make -f <somefile>`
-# 7. Rename <somefile> to something easier to type.
-# 8. Appreciate the time and effort I've put into making this all possible.
+# 5. genmake will generate your new makefile and name it "Makefile"
+# 6. Compile your code by running:
+#    `make all`
+# 7. Appreciate the time and effort I've put into making this all possible.
 #
 
 import sys
 if sys.version_info < (3, 2):
     print('ERROR: This requires Python 3.2 or higher')
-    exit()
+    exit(1)
 
 import argparse
 import fnmatch
@@ -115,8 +113,8 @@ def downloadFile(url, dest):
 def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('directory', help='The directory where Yagarto or Linaro is installed.')
-    parser.add_argument('--drive', type=str, default=None, help='The generated makefile will only contain settings and will invoke the given makefile to do the actual work (optional)')
-    parser.add_argument('-o', type=str, default=None, help='The name of the new makefile (optional)')
+    parser.add_argument('--drive', metavar='makefile', type=str, default=None, help='The generated makefile will only contain settings and will invoke the given makefile to do the actual work (optional)')
+    parser.add_argument('-o', metavar='output', type=str, default=None, help='The name of the generated makefile (optional)')
     parser.add_argument('--download', action='store_true', help='forces downloading the most recent template from the internet')
     args = parser.parse_args(argv)
 

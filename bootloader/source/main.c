@@ -11,7 +11,7 @@ void load_program();
 int boot_main()
 {
     init_uart();
-    put_string("Bootloader initializing...\r\n");
+    put_string("Bootloader waiting (press \"g\" once you've loaded your program)\r\n");
     load_program();
     return 0;
 }

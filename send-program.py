@@ -36,6 +36,7 @@ def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('port', type=str, help='COM port (eg. COM3 on Windows, /dev/ttyUSB0 on Linux)')
     parser.add_argument('-f', '--file', type=str, dest='file', default='bin/kernel7.hex', help='file to send over UART (default bin/kernel7.hex)')
+    parser.add_argument('--wait' action='store_true', help='wait to send until after receiving a line of input')
     parser.add_argument('--baud', type=int, default=11520, help='baud rate (default 11520)')
     parser.add_argument('--data', type=int, default=8, choices=DATA_BIT_OPTIONS, help='number of data bits (default 8)')
     parser.add_argument('--parity', type=str, choices=PARITY_OPTIONS, default=serial.PARITY_NONE, help='set parity (default N)')
@@ -46,9 +47,10 @@ def main(argv):
     try:
         hexfile = open(args.file, 'r')
         com = serial.Serial(args.port, args.baud, args.data, args.parity, args.stop)
-        com.write(hexfile.read())
+        com.write(bytes(hexfile.read(), 'utf-8'))
         hexfile.close()
         com.close()
+        print('Open ' + args.port + ' with PuTTY and press "g" to run your program')
     except BaseException as e:
         print('ERROR:', str(e))
 
