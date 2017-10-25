@@ -11,7 +11,7 @@ void load_program();
 int boot_main()
 {
     init_uart();
-    put_string("Bootloader waiting (press \"g\" once you've loaded your program)\r\n");
+    put_string("Bootloader waiting...\r\n");
     load_program();
     return 0;
 }
@@ -145,7 +145,8 @@ void load_program()
                     }
                     case 0x01:
                     {
-                        print_hex(sum);
+                        // print_hex(sum);
+                        put_string("-- Press 'g' to start the program\r\n")
                         state=0;
                         break;
                     }
