@@ -103,11 +103,10 @@ OBJECTS += $(patsubst $(SOURCE)%.cpp,$(BUILD)%.o,$(wildcard $(SOURCE)*.cpp))
 # OS-specific stuff, because Windows is dumb
 ###
 
-# If tehy tell us we're using Unix, assume they're telling the truth, otherwise
+# If they tell us we're using Unix, assume they're telling the truth, otherwise
 # check if we need to cry and use powershell.
 ifeq ($(UNIX),true)
-	MKDIR_CMD ?= mkdir -p "$(1)"
-	RM_CMD ?= rm -f "$(1)"
+	OS := Unix
 endif
 ifeq ($(OS),Windows_NT)
 	MKDIR_CMD ?= powershell -Command "mkdir -Force $(1) 2>&1 | Out-Null"
