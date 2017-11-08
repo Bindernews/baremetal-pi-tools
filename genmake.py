@@ -111,10 +111,10 @@ class MakefileGen:
         out.write(s)
 
     def fix_slash(self, s):
-        if self.is_unix:
-            return s.replace('\\', '/')
-        else:
-            return s.replace('/', '\\')
+        s = s.replace('\\', '/')
+        if not self.is_unix:
+            s = s.replace(':/', ':', 1)
+        return s
 
 
 def downloadFile(url, dest):
