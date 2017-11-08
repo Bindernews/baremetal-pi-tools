@@ -31,6 +31,7 @@ try:
 except ImportError:
     install_package('pyserial')
     import serial
+    from serial.tools.miniterm import Miniterm, key_description
 
 class MyMiniterm(Miniterm):
     def handle_menu_key(self, c):

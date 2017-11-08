@@ -146,7 +146,7 @@ void load_program()
                     case 0x01:
                     {
                         // print_hex(sum);
-                        put_string("-- Press 'g' to start the program\r\n")
+                        put_string("-- Press 'g' to start the program\r\n");
                         state=0;
                         break;
                     }

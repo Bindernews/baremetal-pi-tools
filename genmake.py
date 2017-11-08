@@ -35,6 +35,10 @@ def get_url_as_string(url):
     with urllib.request.urlopen(url, cadefault=True) as response:
         return str(response.read(), 'utf-8')
 
+def fslash(s):
+    """ Replace all back-slashes with forward-slashes. """
+    return s.replace('\\', '/')
+
 class MakefileGen:
     def __init__(self, guess_dir, name=None, force_download=False):
         self.guess_path = guess_dir
@@ -82,8 +86,8 @@ class MakefileGen:
 
     def _make_settings_string(self):
         s = ''
-        s += 'PREFIX ?= "' + self.compiler_dir + '"' + LN
-        s += 'ARMGNU ?= "$(PREFIX)/bin/' + self.arm_gnu + '"' + LN
+        s += 'PREFIX ?= "' + self.fix_slash(self.compiler_dir) + '"' + LN
+        s += 'ARMGNU ?= "$(PREFIX)/bin/' + self.fix_slash(self.arm_gnu) + '"' + LN
         s += 'SUFFIX ?= ' + ('.exe' if self.has_exe else '') + LN
         # s += 'CYGWIN ?= ' + ('true' if self.is_cygwin else 'false') + LN
         s += 'UNIX ?= ' + ('true' if self.is_unix else 'false') + LN
@@ -105,6 +109,13 @@ class MakefileGen:
         s += LN
         s += 'include ' + base + LN
         out.write(s)
+
+    def fix_slash(self, s):
+        if self.is_unix:
+            return s.replace('\\', '/')
+        else:
+            return s.replace('/', '\\')
+
 
 def downloadFile(url, dest):
     with urllib.request.urlopen(url, cadefault=True) as response, open(dest, 'wb') as fd:

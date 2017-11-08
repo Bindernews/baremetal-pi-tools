@@ -45,16 +45,6 @@
 ###
 {{INSERT_CONFIGURATION_SETTINGS}}
 
-##############
-# Change Log #
-##############
-# 2017-10-17:
-#   - Add rule for making ihex file
-#   - Add comment about linking to libc
-# 2017-09-13:
-#   - Cross-platform compatibility fixes
-#
-
 ###########################
 # DON'T CHANGE THIS STUFF #
 ###########################
@@ -105,15 +95,8 @@ OBJECTS += $(patsubst $(SOURCE)%.cpp,$(BUILD)%.o,$(wildcard $(SOURCE)*.cpp))
 
 # If they tell us we're using Unix, assume they're telling the truth, otherwise
 # check if we need to cry and use powershell.
-ifeq ($(UNIX),true)
-	OS := Unix
-endif
-ifeq ($(OS),Windows_NT)
-	MKDIR_CMD ?= powershell -Command "mkdir -Force $(1) 2>&1 | Out-Null"
-	RM_CMD ?= powershell -Command "rm $(1) 2>&1 | Out-Null"
-else
-	MKDIR_CMD ?= mkdir -p "$(1)"
-	RM_CMD ?= rm -f $(1)
+ifneq ($(OS),Windows_NT)
+	UNIX := true
 endif
 
 ###
@@ -268,19 +251,18 @@ $(BUILD)%.o: $(SOURCE)%.c | $(BUILD)
 $(BUILD)%.o: $(SOURCE)%.cpp | $(BUILD)
 	$(ARMGNU)-g++$(SUFFIX) $(CXXFLAGS) -c $< -o $@  $(CASM_LIST)
 
-$(BUILD):
-	$(call MKDIR_CMD,$(BUILD))
+$(BUILD): $(OUTPUT)
 
+ifeq ($(UNIX),true)
 $(OUTPUT):
-	$(call MKDIR_CMD,$(OUTPUT))
-    
-# Rule to clean files.
-clean : 
-	-$(call RM_CMD,$(BUILD)*.o)
-	-$(call RM_CMD,$(BUILD)*.d)
-	-$(call RM_CMD,$(BUILD)*.lst)
-	-$(call RM_CMD,$(BUILD)output.elf)
-	-$(call RM_CMD,$(TARGET))
-	-$(call RM_CMD,$(TARGET_HEX))
-	-$(call RM_CMD,$(LIST))
-	-$(call RM_CMD,$(MAP))
+	mkdir $(OUTPUT) $(BUILD)
+
+clean:
+	-rm $(BUILD)*.o $(BUILD)*.d $(BUILD)*.lst $(BUILD)output.elf $(TARGET) $(TARGET_HEX) $(LIST) $(MAP)
+else
+$(OUTPUT):
+	powershell -Command "mkdir -Force $(OUTPUT),$(BUILD) 2>&1 | Out-Null"
+
+clean:
+	-powershell -Command "rm $(BUILD)*.o, $(BUILD)*.d, $(BUILD)*.lst, $(BUILD)output.elf, $(TARGET), $(TARGET_HEX), $(LIST), $(MAP) 2>&1 | Out-Null"
+endif
