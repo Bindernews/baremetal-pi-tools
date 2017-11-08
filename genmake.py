@@ -12,18 +12,17 @@
 #    `make all`
 # 7. Appreciate the time and effort I've put into making this all possible.
 #
-
+from __future__ import print_function
 import sys
-if sys.version_info < (3, 2):
-    print('ERROR: This requires Python 3.2 or higher')
-    exit(1)
-
 import argparse
 import fnmatch
 import os
 import os.path
 import datetime
-import urllib.request
+if sys.version_info < (3, 2):
+    import urllib2 as liburl
+else:
+    import urllib.request as liburl
 
 LN = '\n'
 GCC_PATTERN = 'arm-*-gcc*'
@@ -32,12 +31,8 @@ TEMPLATE_URL = 'https://raw.githubusercontent.com/Bindernews/baremetal-pi-tools/
 TEMPLATE_STRING = '{{INSERT_CONFIGURATION_SETTINGS}}'
 
 def get_url_as_string(url):
-    with urllib.request.urlopen(url, cadefault=True) as response:
+    with liburl.urlopen(url, cadefault=True) as response:
         return str(response.read(), 'utf-8')
-
-def fslash(s):
-    """ Replace all back-slashes with forward-slashes. """
-    return s.replace('\\', '/')
 
 class MakefileGen:
     def __init__(self, guess_dir, name=None, force_download=False):
