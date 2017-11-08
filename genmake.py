@@ -86,7 +86,7 @@ class MakefileGen:
 
     def _make_settings_string(self):
         s = ''
-        s += 'PREFIX ?= "' + self.fix_slash(self.compiler_dir) + '"' + LN
+        s += 'PREFIX ?= ' + self.fix_slash(self.compiler_dir) + LN
         s += 'ARMGNU ?= "$(PREFIX)/bin/' + self.fix_slash(self.arm_gnu) + '"' + LN
         s += 'SUFFIX ?= ' + ('.exe' if self.has_exe else '') + LN
         # s += 'CYGWIN ?= ' + ('true' if self.is_cygwin else 'false') + LN
@@ -112,8 +112,6 @@ class MakefileGen:
 
     def fix_slash(self, s):
         s = s.replace('\\', '/')
-        if not self.is_unix:
-            s = s.replace(':/', ':', 1)
         return s
 
 
