@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from __future__ import print_function
 import argparse
@@ -36,7 +36,6 @@ except ImportError:
     install_package('ninja_syntax')
     import ninja_syntax
 
-
 class NinjaGen:
     def __init__(self, guess_dir, include_file):
         self.guess_path = guess_dir
@@ -63,7 +62,7 @@ class NinjaGen:
         self.arm_gnu = gcc_file[:gcc_file.rfind('eabi-') + 5]
         self.has_exe = gcc_file.find('.exe') != -1
         self.is_cygwin = os.path.exists('/cygdrive/')
-        self.is_unix = (not self.has_exe) or self.is_cygwin
+        self.is_unix = (sys.platform != 'win32') or self.is_cygwin
         self.name = os.path.basename(self.compiler_dir)
 
     def get_sources(self, directory):
@@ -96,8 +95,10 @@ class NinjaGen:
         n.newline()
 
         # And a regen rule/target
-        n.variable('script_path', os.path.abspath(sys.argv[0]))
-        regen_cmd = '"{}" $script_path $bindir -o "{}"'.format(sys.executable, outfile)
+        n.variable('python', sys.executable)
+        n.variable('script_dir', os.path.dirname(os.path.abspath(sys.argv[0])))
+        regen_cmd = '$python $script_dir/genninja.py $bindir -o "{}"'.format(outfile)
+        # Handle the include file if the user specified it
         if self.include_file:
             regen_cmd += ' -i "{}"'.format(self.include_file)
         n.rule('regenerate', description='Regenerate build script', command=regen_cmd)
@@ -116,8 +117,9 @@ class NinjaGen:
         # Get the execution path for the binaries
         binaries = {}
         shell_prefix = '' if self.is_unix else 'cmd /c '
+        exe_suffix = '.exe' if self.has_exe else ''
         for name in ['gcc', 'as', 'ld', 'objcopy', 'objdump']:
-            binaries[name] = shell_prefix + '$bindir/' + self.arm_gnu + name
+            binaries[name] = shell_prefix + '$bindir/' + self.arm_gnu + name + exe_suffix
         # Now add build rules
         n.rule('cc', description='Compile C',
             command='{} $cflags -c $in -o $out -Wa,-adhln > ${{out}}.lst'.format(binaries['gcc']))
@@ -162,6 +164,16 @@ class NinjaGen:
         n.default('all')
         n.newline()
 
+        # Here we create "tools" that are really just shortcuts. Also I don't think cygwin can chmod.
+        if self.is_unix and not self.is_cygwin:
+            shortcut_cmd = 'echo $in \\$$* > $out && chmod ug+x $out'
+        else:
+            shortcut_cmd = shell_prefix + 'echo @ $in %* > ${out}.bat'
+        n.rule('shortcut', description='Generating shortcut', command=shortcut_cmd)
+
+        # And the only tool for now is piterm
+        n.build('piterm', 'shortcut', ['$python', '$script_dir/piterm.py'], implicit_outputs=['piterm.bat'])
+
         # Handle the include file
         if self.include_file:
             n.include(self.include_file)
@@ -176,10 +188,12 @@ def main(args):
     parser = argparse.ArgumentParser()
     parser.add_argument('directory',
         help='the directory where Yagarto or Linaro is installed')
-    parser.add_argument('-o', metavar='output', type=str, default=DEFAULT_FILE,
+    parser.add_argument('-o', metavar='output', default=DEFAULT_FILE,
         help='the name of the generated ninja file')
-    parser.add_argument('-i', metavar='include', type=str, default=None,
+    parser.add_argument('-i', metavar='include', default=None,
         help='includes the given file to allow overriding default variables and rules')
+    # parser.add_argument('-s', action='append',
+    #     help='specify a setting in the form "key=value" or just "key"')
     opt = parser.parse_args(args)
 
     try:
