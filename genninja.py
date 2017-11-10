@@ -62,7 +62,7 @@ class NinjaGen:
         self.arm_gnu = gcc_file[:gcc_file.rfind('eabi-') + 5]
         self.has_exe = gcc_file.find('.exe') != -1
         self.is_cygwin = os.path.exists('/cygdrive/')
-        self.is_unix = (sys.platform != 'win32') or self.is_cygwin
+        self.is_unix = sys.platform != 'win32'
         self.name = os.path.basename(self.compiler_dir)
 
     def get_sources(self, directory):
@@ -94,24 +94,24 @@ class NinjaGen:
         n.variable('builddir', 'build')
         n.newline()
 
-        # And a regen rule/target
-        n.variable('python', sys.executable)
-        n.variable('script_dir', os.path.dirname(os.path.abspath(sys.argv[0])))
+        # Add a bunch of variables which we will use later
+        n.variable('python', fslash(sys.executable))
+        n.variable('script_dir', fslash(os.path.dirname(os.path.abspath(sys.argv[0]))))
+        n.variable('bindir', fslash(self.bin_dir))
+        n.newline() # These ones are less important
+        n.variable('warnflags', WARN_FLAGS)
+        n.variable('includes', INCLUDES)
+        n.variable('dependflags', DEPEND_FLAGS)
+        n.variable('baseflags', PI3_FLAGS)
+        n.variable('cflags', '$baseflags $includes $dependflags $warnflags')
+
+        # Next we add a rule to regenerate 
         regen_cmd = '$python $script_dir/genninja.py $bindir -o "{}"'.format(outfile)
         # Handle the include file if the user specified it
         if self.include_file:
             regen_cmd += ' -i "{}"'.format(self.include_file)
         n.rule('regenerate', description='Regenerate build script', command=regen_cmd)
         n.build('regen', 'regenerate')
-        n.newline()
-
-        # Add a bunch of variables which we will use later
-        n.variable('bindir', self.fix_slash(self.bin_dir))
-        n.variable('warnflags', WARN_FLAGS)
-        n.variable('includes', INCLUDES)
-        n.variable('dependflags', DEPEND_FLAGS)
-        n.variable('baseflags', PI3_FLAGS)
-        n.variable('cflags', '$baseflags $includes $dependflags $warnflags')
         n.newline()
 
         # Get the execution path for the binaries
@@ -165,7 +165,7 @@ class NinjaGen:
         n.newline()
 
         # Here we create "tools" that are really just shortcuts. Also I don't think cygwin can chmod.
-        if self.is_unix and not self.is_cygwin:
+        if self.is_unix:
             shortcut_cmd = 'echo $in \\$$* > $out && chmod ug+x $out'
         else:
             shortcut_cmd = shell_prefix + 'echo @ $in %* > ${out}.bat'
@@ -181,8 +181,8 @@ class NinjaGen:
         # Close the file when we're done
         n.close()
 
-    def fix_slash(self, s):
-        return s.replace('\\', '/')
+def fslash(s):
+    return s.replace('\\', '/')
 
 def main(args):
     parser = argparse.ArgumentParser()
